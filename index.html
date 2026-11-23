@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reservas on-chain (Devnet)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; background:#0f1115; color:#e8e8e8; }
+  button { background:#9945ff; color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; margin:.2rem; cursor:pointer; }
+  input { padding:.45rem; border-radius:6px; border:1px solid #444; background:#1a1d24; color:#eee; margin:.2rem; }
+  .card { background:#1a1d24; border-radius:10px; padding:1rem; margin:.8rem 0; }
+  #log a { color:#14f195; word-break:break-all; }
+</style>
+</head>
+<body>
+<h1>Reservas on-chain</h1>
+<p>Programa Anchor en Devnet. Conecta Phantom (en red Devnet).</p>
+<button id="connect">Conectar wallet</button>
+<div id="who"></div>
+
+<div class="card">
+  <h3>Mi negocio</h3>
+  <input id="nNombre" placeholder="Nombre del negocio" />
+  <button id="crearNegocio">Crear negocio</button>
+  <div id="negocio"></div>
+</div>
+
+<div class="card">
+  <h3>Nuevo servicio</h3>
+  <input id="sNombre" placeholder="Nombre" />
+  <input id="sCupo" type="number" value="2" min="1" style="width:70px" />
+  <button id="crearServicio">Crear servicio</button>
+</div>
+
+<div class="card"><h3>Servicios</h3><div id="servicios">—</div></div>
+<div class="card"><h3>Log</h3><div id="log"></div></div>
+
+<script type="module">
+import * as anchor from "https://esm.sh/@coral-xyz/anchor@0.29.0";
+import { Connection, PublicKey, SystemProgram } from "https://esm.sh/@solana/web3.js@1.95.3";
+import { Buffer } from "https://esm.sh/buffer@6.0.3";
+window.Buffer = Buffer;
+
+// Pega aquí tu Program ID de Devnet:
+const PROGRAM_ID = new PublicKey("PEGA_AQUI_TU_PROGRAM_ID");
+const idl = await (await fetch("./idl.json")).json();
+const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+let program, wallet;
+const $ = (id) => document.getElementById(id);
+const log = (t, sig) => $("log").innerHTML =
+  `<div>${t}${sig ? ` → <a target="_blank" href="https://explorer.solana.com/tx/${sig}?cluster=devnet">${sig.slice(0,16)}…</a>` : ""}</div>` + $("log").innerHTML;
+const pda = (seeds) => PublicKey.findProgramAddressSync(seeds, PROGRAM_ID)[0];
+const negocioPda = () => pda([Buffer.from("negocio"), wallet.publicKey.toBuffer()]);
+const ESTADOS = ["Pendiente", "Confirmada"];
+
+$("connect").onclick = async () => {
+  const phantom = window.phantom?.solana || window.solana;
+  if (!phantom) return alert("Instala Phantom");
+  await phantom.connect();
+  wallet = phantom;
+  const provider = new anchor.AnchorProvider(connection, wallet, { commitment: "confirmed" });
+  program = idl.address ? new anchor.Program(idl, provider) : new anchor.Program(idl, PROGRAM_ID, provider);
+  $("who").textContent = "Wallet: " + wallet.publicKey.toBase58();
+  refrescar();
+};
+
+async function refrescar() {
+  const n = await program.account.negocio.fetchNullable(negocioPda());
+  $("negocio").textContent = n ? `${n.nombre} · servicios creados: ${n.servicios}` : "Aún no tienes negocio";
+  const todos = await program.account.servicio.all();
+  $("servicios").innerHTML = "";
+  for (const { publicKey, account } of todos) {
+    const r = pda([Buffer.from("reserva"), publicKey.toBuffer(), wallet.publicKey.toBuffer()]);
+    const miReserva = await program.account.reserva.fetchNullable(r);
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `<b>${account.nombre}</b> · cupo ${account.activas}/${account.cupo}
+      ${miReserva ? ` · mi reserva: ${ESTADOS[miReserva.estado]}` : ""}<br/>`;
+    const btn = (txt, fn) => { const b = document.createElement("button"); b.textContent = txt; b.onclick = fn; div.appendChild(b); };
+    if (!miReserva) btn("Reservar", () => run("Reservar", program.methods.reservar().accounts({
+      servicio: publicKey, reserva: r, cliente: wallet.publicKey, systemProgram: SystemProgram.programId })));
+    else if (miReserva.estado === 0) btn("Cancelar mi reserva", () => run("Cancelar", program.methods.cancelarReserva().accounts({
+      servicio: publicKey, reserva: r, cliente: wallet.publicKey })));
+    btn("Cerrar servicio (dueño)", () => run("Cerrar servicio", program.methods.cerrarServicio().accounts({
+      negocio: account.negocio, servicio: publicKey, owner: wallet.publicKey })));
+    $("servicios").appendChild(div);
+  }
+  if (!todos.length) $("servicios").textContent = "Sin servicios";
+}
+
+async function run(nombre, builder) {
+  try { const sig = await builder.rpc(); log(nombre + " OK", sig); }
+  catch (e) { log(nombre + " falló: " + (e.error?.errorMessage || e.message)); }
+  refrescar();
+}
+
+$("crearNegocio").onclick = () => run("Crear negocio", program.methods.crearNegocio($("nNombre").value).accounts({
+  negocio: negocioPda(), owner: wallet.publicKey, systemProgram: SystemProgram.programId }));
+
+$("crearServicio").onclick = async () => {
+  const n = await program.account.negocio.fetch(negocioPda());
+  const servicio = pda([Buffer.from("servicio"), negocioPda().toBuffer(), n.servicios.toArrayLike(Buffer, "le", 8)]);
+  run("Crear servicio", program.methods.crearServicio($("sNombre").value, Number($("sCupo").value)).accounts({
+    negocio: negocioPda(), servicio, owner: wallet.publicKey, systemProgram: SystemProgram.programId }));
+};
+</script>
+</body>
+</html>
