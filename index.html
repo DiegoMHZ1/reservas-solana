@@ -42,7 +42,7 @@ import { Buffer } from "https://esm.sh/buffer@6.0.3";
 window.Buffer = Buffer;
 
 // Pega aquí tu Program ID de Devnet:
-const PROGRAM_ID = new PublicKey("PEGA_AQUI_TU_PROGRAM_ID");
+const PROGRAM_ID = new PublicKey("97V2zGHbu5Rh4N4MVjVdwqgAX3cvHsZDMRecePfe1zht");
 const idl = await (await fetch("./idl.json")).json();
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 let program, wallet;
