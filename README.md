@@ -1,15 +1,15 @@
 # Reservas on-chain (Solana · Anchor · Devnet)
 
 **Ruta elegida:** Proyecto propio
-**Autor:** _TU NOMBRE COMPLETO_ · _tu-correo-de-registro@ejemplo.com_
+**Autor:** Moreno Hernandez Diego Alberto · L24090243@huixquilucan.tecnm.mx
 
 ## Propósito
 Sistema de reservas para negocios pequeños (barbería, consultorio, clases). El dueño registra su negocio y sus servicios con un cupo; los clientes reservan desde su wallet y el dueño confirma, finaliza o cierra servicios. Todas las reglas viven en el programa.
 
 ## Despliegue
 - **Red:** Devnet
-- **Program ID:** `PEGA_AQUI_TU_PROGRAM_ID`
-- **Transacción verificable:** https://explorer.solana.com/tx/PEGA_AQUI_UNA_FIRMA?cluster=devnet
+- **Program ID:** `97V2zGHbu5Rh4N4MVjVdwqgAX3cvHsZDMRecePfe1zht`
+- **Transacción verificable:** https://explorer.solana.com/tx/3sk9z7SNBYXUJHHLWaZ6QnmMBiA4y7NV4jXvsLaLWEFioiMUxr3h1rSSKp69sconkD3WEdV3KfrKUgpSprfbgx86?cluster=devnet
 
 ## Arquitectura de cuentas (PDAs relacionadas)
 | Cuenta | Seeds | Relación |
@@ -42,23 +42,22 @@ La lectura se hace con `program.account.<cuenta>.fetch()` / `.all()` en el clien
 
 ## Estructura
 ```
-programs/reservas/src/lib.rs   # Programa Anchor
-client/client.ts               # Cliente (Solana Playground) coherente con el IDL
-app/index.html                 # Frontend con wallet (Phantom)
-app/idl.json                   # IDL exportado de la versión desplegada
+lib.rs       # Programa Anchor
+client.ts    # Cliente (Solana Playground) coherente con el IDL
+index.html   # Frontend con wallet (Phantom)
 ```
 
 ## Configuración y ejecución
 1. Abre https://beta.solpg.io → crea proyecto **Anchor (Rust)**.
-2. Pega `programs/reservas/src/lib.rs` en `src/lib.rs`.
-3. Conecta la wallet de Playground (abajo a la izquierda), red **Devnet**, y pide SOL: `solana airdrop 2` en la terminal.
+2. Pega el contenido de `lib.rs` en `src/lib.rs` de Playground.
+3. Conecta la wallet de Playground (abajo a la izquierda), red **Devnet**, y obtén SOL de prueba en https://faucet.solana.com.
 4. **Build** → **Deploy**. Copia el Program ID.
-5. Pega `client/client.ts` en `client/client.ts` de Playground y pulsa **Run**: imprime links de cada transacción.
-6. Exporta el IDL (menú Build → Export IDL) y guárdalo como `app/idl.json`.
+5. Pega `client.ts` en `client/client.ts` de Playground y pulsa **Run**: imprime links de cada transacción.
+6. Exporta el IDL (menú Build → Export IDL) y guárdalo como `idl.json` junto a `index.html`.
 
 ### Frontend
-1. En `app/index.html` reemplaza `PEGA_AQUI_TU_PROGRAM_ID`.
-2. Sirve la carpeta: `npx serve app` (o activa GitHub Pages sobre `/app`).
+1. En `index.html` reemplaza `PEGA_AQUI_TU_PROGRAM_ID` por el Program ID.
+2. Sirve la carpeta: `npx serve .` (o activa GitHub Pages en el repo).
 3. Abre la página con Phantom en **Devnet**, conecta y prueba: crear negocio, crear servicio, reservar, cancelar, cerrar servicio.
 
 ## Cómo probarlo
@@ -73,4 +72,10 @@ app/idl.json                   # IDL exportado de la versión desplegada
 - Cliente de pruebas end-to-end y frontend con wallet.
 
 ## Evidencias
-_Agrega aquí capturas o links de explorer de las transacciones._
+- Crear negocio: https://explorer.solana.com/tx/3sk9z7SNBYXUJHHLWaZ6QnmMBiA4y7NV4jXvsLaLWEFioiMUxr3h1rSSKp69sconkD3WEdV3KfrKUgpSprfbgx86?cluster=devnet
+- Crear servicio: https://explorer.solana.com/tx/yoiz1To94uaADTnqUvZcnTsqRMoerqVznNPuv8AkEU61YcjrAQ2CQB5T1obxAq2SakDmFQ5yHxFL5Dtr2zgp5BK?cluster=devnet
+
+_(Captura de la ejecución del cliente:)_
+<img width="1916" height="1078" alt="image" src="https://github.com/user-attachments/assets/53ad255b-c110-4cfd-adb1-e4ee607be742" />
+
+
